@@ -1,7 +1,10 @@
 import React, { Component } from 'react';
+import { Link } from 'react-router-dom';
 import { Template } from '../../components';
 import { SERVER_IP } from '../../private';
 import './viewOrders.css';
+
+const DELETE_ORDER_URL = `${SERVER_IP}/api/delete-order`
 
 class ViewOrders extends Component {
     state = {
@@ -9,6 +12,10 @@ class ViewOrders extends Component {
     }
 
     componentDidMount() {
+        this.loadOrders();
+    }
+
+    loadOrders() {
         fetch(`${SERVER_IP}/api/current-orders`)
             .then(response => response.json())
             .then(response => {
@@ -18,6 +25,23 @@ class ViewOrders extends Component {
                     console.log('Error getting orders');
                 }
             });
+    }
+
+    deleteOrder(event, orderId) {
+        event.preventDefault();
+        fetch(DELETE_ORDER_URL, {
+            method: 'POST',
+            body: JSON.stringify({
+                id: orderId
+            }),
+            headers: {
+                'Content-Type': 'application/json'
+            }
+        })
+        .then(res => res.json())
+        .then(response => console.log("Success", JSON.stringify(response)))
+        .then(() => this.loadOrders())
+        .catch(error => console.error(error));
     }
 
     render() {
@@ -37,8 +61,8 @@ class ViewOrders extends Component {
                                     <p>Quantity: {order.quantity}</p>
                                  </div>
                                  <div className="col-md-4 view-order-right-col">
-                                     <button className="btn btn-success">Edit</button>
-                                     <button className="btn btn-danger">Delete</button>
+                                     <Link to={`/order/${order._id}`} className="btn btn-success">Edit</Link>
+                                     <button onClick={(event) => this.deleteOrder(event, order._id)} className="btn btn-danger">Delete</button>
                                  </div>
                             </div>
                         );
