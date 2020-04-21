@@ -11,7 +11,7 @@ const finishLogin = (email, token) => {
     }
 }
 
-export const loginUser = (email, password) => {
+export const loginUser = (email, password, callback) => {
     return (dispatch) => {
         fetch(`${SERVER_IP}/api/login`, {
             method: 'POST',
@@ -26,6 +26,7 @@ export const loginUser = (email, password) => {
         .then(response => {
             if (response.success) {
                 dispatch(finishLogin(response.email, response.token));
+                if (callback) callback();
             }
         })
     };
