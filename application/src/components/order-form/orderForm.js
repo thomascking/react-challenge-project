@@ -4,39 +4,76 @@ import { connect } from 'react-redux';
 import { SERVER_IP } from '../../private';
 import './orderForm.css';
 
-const ADD_ORDER_URL = `${SERVER_IP}/api/add-order`
+const ADD_ORDER_URL = `${SERVER_IP}/api/add-order`;
+const EDIT_ORDER_URL = `${SERVER_IP}/api/edit-order`;
 
 const mapStateToProps = (state) => ({
     auth: state.auth,
 })
 
 class OrderForm extends Component {
-    constructor(props) {
-        super(props);
-        this.state = {
+    state = {
+        order: {
             order_item: "",
             quantity: "1"
         }
     }
 
+    componentDidMount() {
+        this.loadOrder(this.props.match.params.id);
+    }
+
+    componentDidUpdate(prevProps) {
+        if (this.props.match.params.id !== prevProps.match.params.id) {
+            this.loadOrder(this.props.match.params.id);
+        }
+    }
+
+    loadOrder(orderId) {
+        if (orderId) {
+            fetch(`${SERVER_IP}/api/current-orders`)
+                .then(response => response.json())
+                .then(response => {
+                    if(response.success) {
+                        const order = response.orders.find(a => a._id === orderId);
+                        this.setState({ order });
+                    } else {
+                        console.log('Error getting orders');
+                    }
+                });
+        }
+        else {
+            this.setState({
+                order: {
+                    order_item: "",
+                    quantity: "1"
+                }
+            });
+        }
+    }
+
     menuItemChosen(event) {
-        this.setState({ item: event.target.value });
+        this.setState({
+            order: {
+                ...this.state.order,
+                order_item: event.target.value
+            }
+        });
     }
 
     menuQuantityChosen(event) {
-        this.setState({ quantity: event.target.value });
+        this.setState({
+            order: {
+                ...this.state.order,
+                quantity: event.target.value
+            }
+        });
     }
 
-    submitOrder(event) {
-        event.preventDefault();
-        if (this.state.order_item === "") return;
-        fetch(ADD_ORDER_URL, {
+    postOrder(url, payload) {
+        return fetch(url, {
             method: 'POST',
-            body: JSON.stringify({
-                order_item: this.state.order_item,
-                quantity: this.state.quantity,
-                ordered_by: this.props.auth.email || 'Unknown!',
-            }),
+            body: JSON.stringify(payload),
             headers: {
                 'Content-Type': 'application/json'
             }
@@ -46,14 +83,33 @@ class OrderForm extends Component {
         .catch(error => console.error(error));
     }
 
+    submitOrder(event) {
+        event.preventDefault();
+        if (this.state.order_item === "") return;
+        const orderObject = {
+            order_item: this.state.order.order_item,
+            quantity: this.state.order.quantity,
+            ordered_by: this.state.order.ordered_by || this.props.auth.email || 'Unknown!',
+        };
+        if (this.state.order._id) {
+            this.postOrder(EDIT_ORDER_URL, {...orderObject, id: this.state.order._id});
+        }
+        else {
+            this.postOrder(ADD_ORDER_URL, orderObject);
+        }
+    }
+
     render() {
         return (
             <Template>
                 <div className="form-wrapper">
                     <form>
-                        <label className="form-label">I'd like to order...</label><br />
+                        <label className="form-label">
+                            { this.state.order._id ? `Edit Order: ${this.state.order._id}` : 'I\'d like to order...'}
+                        </label>
+                        <br />
                         <select 
-                            value={this.state.order_item} 
+                            value={this.state.order.order_item} 
                             onChange={(event) => this.menuItemChosen(event)}
                             className="menu-select"
                         >
@@ -64,7 +120,7 @@ class OrderForm extends Component {
                             <option value="Chili Con Carne">Chili Con Carne</option>
                         </select><br />
                         <label className="qty-label">Qty:</label>
-                        <select value={this.state.quantity} onChange={(event) => this.menuQuantityChosen(event)}>
+                        <select value={this.state.order.quantity} onChange={(event) => this.menuQuantityChosen(event)}>
                             <option value="1">1</option>
                             <option value="2">2</option>
                             <option value="3">3</option>
@@ -72,7 +128,9 @@ class OrderForm extends Component {
                             <option value="5">5</option>
                             <option value="6">6</option>
                         </select>
-                        <button type="button" className="order-btn" onClick={(event) => this.submitOrder(event)}>Order It!</button>
+                        <button type="button" className="order-btn" onClick={(event) => this.submitOrder(event)}>
+                            { this.state.order._id ? 'Save' : 'Order It!'}
+                        </button>
                     </form>
                 </div>
             </Template>
