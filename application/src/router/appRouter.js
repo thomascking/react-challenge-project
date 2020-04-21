@@ -7,7 +7,7 @@ const AppRouter = (props) => {
     <Router>
       <Route path="/" exact component={Main} />
       <Route path="/login" exact component={Login} />
-      <Route path="/order" exact component={OrderForm} />
+      <Route path="/order/:id?" exact component={OrderForm} />
       <Route path="/view-orders" exact component={ViewOrders} />
     </Router>
   );
